@@ -1,0 +1,89 @@
+plugins {
+    id 'java'
+    id 'jacoco'
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.5'
+}
+
+group = 'ru.panyukovnn'
+version = '1.0.0-RC1'
+
+java.targetCompatibility = JavaVersion.VERSION_17
+java.sourceCompatibility = JavaVersion.VERSION_17
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    maven { url "https://mvn.mchv.eu/repository/mchv/" }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa"
+    implementation "org.springframework.boot:spring-boot-starter-actuator"
+    implementation "org.springframework.boot:spring-boot-starter-validation"
+    implementation "org.springframework.boot:spring-boot-starter-data-rest"
+
+    implementation "org.liquibase:liquibase-core"
+    implementation "org.postgresql:postgresql:42.7.4"
+
+    implementation 'org.telegram:telegrambots:6.5.0'
+    implementation 'org.telegram:telegrambots-meta:6.5.0'
+    implementation 'org.telegram:telegrambotsextensions:6.5.0'
+
+    implementation platform('it.tdlight:tdlight-java-bom:3.4.0+td.1.8.26')
+    implementation group: 'it.tdlight', name: 'tdlight-java'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'macos_arm64'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_gnu_ssl3'
+
+    implementation "org.jsoup:jsoup:1.20.1"
+
+    implementation "net.logstash.logback:logstash-logback-encoder:7.3"
+    implementation "org.codehaus.janino:janino:3.1.9"
+
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+    testImplementation "com.h2database:h2"
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jacocoTestReport {
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    "**/config/*",
+                    "**/property/*",
+                    "**/exception/*"
+            ])
+        }))
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.40 // 30% минимальное покрытие
+            }
+        }
+    }
+}
+
+bootJar {
+    archiveFileName = "th-chats-collector.jar"
+}
+
+tasks.withType(Test) {
+    systemProperty "file.encoding", "UTF-8"
+}
+
+jar {
+    enabled = false
+}
