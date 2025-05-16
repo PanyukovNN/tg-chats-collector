@@ -1,0 +1,43 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.NVPN_SSH_PRIVATE_KEY }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SSH_USER: ${{ secrets.NVPN_SSH_USER }}
+          IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          REMOTE_DIR: tg-chats-collector
+        run: |
+          # Подключаемся к серверу и выполняем скрипт
+          echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${SSH_USER}@${SERVER_IP} "
+            cd $REMOTE_DIR
+            docker compose down -v
+            APP_TAG=${IMAGE_TAG} docker compose up -d
+          "
+
+      - name: Notify Telegram on success
+        if: success()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.NOTIFICATION_TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }} \
+            -d text="✅ tg-chats-collector %0A Успешно выполнен deploy ${{ github.event.inputs.image_tag }}"
+
+      - name: Notify Telegram on failure
+        if: failure()
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.NOTIFICATION_TELEGRAM_BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.NOTIFICATION_TELEGRAM_CHAT_ID }} \
+            -d text="❌ tg-chats-collector %0A Ошибка при деплое ${{ github.event.inputs.image_tag }} %0A Посмотреть лог: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -70,17 +70,17 @@ jacocoTestCoverageVerification {
     violationRules {
         rule {
             limit {
-                minimum = 0.40 // 30% минимальное покрытие
+                minimum = 0.40
             }
         }
     }
 }
 
 bootJar {
-    archiveFileName = "th-chats-collector.jar"
+    archiveFileName = "tg-chats-collector.jar"
 }
 
-tasks.withType(Test) {
+tasks.withType(Test).configureEach {
     systemProperty "file.encoding", "UTF-8"
 }
 

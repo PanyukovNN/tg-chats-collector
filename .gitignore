@@ -40,3 +40,4 @@ bin/
 
 **application-localdev.properties
 /tdlight-session/
+/deploy/config.env
