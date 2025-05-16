@@ -35,6 +35,7 @@ dependencies {
     implementation group: 'it.tdlight', name: 'tdlight-java'
     implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'macos_arm64'
     implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_gnu_ssl3'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_gnu_ssl1'
 
     implementation "org.jsoup:jsoup:1.20.1"
 

@@ -4,6 +4,8 @@ services:
   tg-chats-collector:
     image: ghcr.io/panyukovnn/tg-chats-collector:${APP_TAG}
     container_name: tg-chats-collector
+    ports:
+      - 8083:8083
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
