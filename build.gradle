@@ -34,8 +34,11 @@ dependencies {
     implementation platform('it.tdlight:tdlight-java-bom:3.4.0+td.1.8.26')
     implementation group: 'it.tdlight', name: 'tdlight-java'
     implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'macos_arm64'
-    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_gnu_ssl3'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_clang_ssl3'
     implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_gnu_ssl1'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_amd64_gnu_ssl3'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_arm64_clang_ssl3'
+    implementation group: 'it.tdlight', name: 'tdlight-natives', classifier: 'linux_armhf_gnu_ssl1'
 
     implementation "org.jsoup:jsoup:1.20.1"
 
@@ -81,10 +84,28 @@ bootJar {
     archiveFileName = "tg-chats-collector.jar"
 }
 
-tasks.withType(Test).configureEach {
-    systemProperty "file.encoding", "UTF-8"
+// Задача для копирования нативных библиотек
+task copyNativeLibs(type: Copy) {
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    into 'build/libs'
+    include '**/libtdjni*.so'
+    include '**/libtdjni*.dylib'
+    include '**/tdjni*.so'
+    include '**/tdjni*.dylib'
+    eachFile {
+        path = name
+    }
+    includeEmptyDirs = false
 }
+
+bootJar.dependsOn copyNativeLibs
 
 jar {
     enabled = false
+}
+
+tasks.withType(Test).configureEach {
+    systemProperty "file.encoding", "UTF-8"
 }

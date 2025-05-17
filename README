@@ -7,5 +7,13 @@
 
 ### Особенности деплоя на сервер
 
-- алгоритм деплоя описан в проекте video-retelling-bot
+перед первым деплоем необходимо:
+
+- заполнить deploy/config.env
+- выполнить deploy/init-server.sh
+- запустить микросервис и залогинится в telegram, чтобы создалась папка tdlight-session
+
+деплой:
+
+- выполняется через github workflow deploy-tag
 
