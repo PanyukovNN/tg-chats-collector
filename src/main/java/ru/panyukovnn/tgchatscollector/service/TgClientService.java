@@ -6,7 +6,6 @@ import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ru.panyukovnn.tgchatscollector.dto.ChatHistoryResponse;
 import ru.panyukovnn.tgchatscollector.dto.TgMessageDto;
 import ru.panyukovnn.tgchatscollector.property.TgChatLoaderProperty;
 
@@ -64,6 +63,12 @@ public class TgClientService {
         while (messageDtos.size() < limitMessagesToLoad) {
             TdApi.Messages messages = collectPublicChatMessages(chatId, fromMessageId);
 
+            if (messages.totalCount == 0) {
+                break;
+            }
+
+            log.info("Загружено сообщений в пачке: {}", messages.messages.length);
+
             for (TdApi.Message message : messages.messages) {
                 TdApi.MessageContent content = message.content;
 
@@ -82,17 +87,15 @@ public class TgClientService {
                         .build());
                 }
 
-                log.info("Загружено сообщений в пачке: {}", messages.messages.length);
-
                 if (messages.messages.length == 0) {
                     return messageDtos;
                 }
 
                 fromMessageId = messages.messages[messages.messages.length - 1].id;
             }
-
-            log.info("Извлечено сообщений: {}", messageDtos.size());
         }
+
+        log.info("Извлечено сообщений: {}", messageDtos.size());
 
         return messageDtos;
     }
