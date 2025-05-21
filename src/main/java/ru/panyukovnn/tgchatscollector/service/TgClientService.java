@@ -7,12 +7,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.panyukovnn.tgchatscollector.dto.TgMessageDto;
+import ru.panyukovnn.tgchatscollector.exception.TgChatsCollectorException;
 import ru.panyukovnn.tgchatscollector.property.TgChatLoaderProperty;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 @Slf4j
@@ -23,40 +27,45 @@ public class TgClientService {
     private final SimpleTelegramClient tgClient;
     private final TgChatLoaderProperty tgChatLoaderProperty;
 
-    public Long findChatIdByPublicChatName(String publicChatName) {
-        TdApi.SearchPublicChat searchPublicChat = new TdApi.SearchPublicChat(publicChatName);
+    public TdApi.Chat findChat(Long chatId, String publicChatName) {
+        if (chatId == null && publicChatName == null) {
+            throw new TgChatsCollectorException("46ea", "Отсутствуют chatId и chatName для идентификации чата");
+        }
 
         try {
-            return tgClient.send(searchPublicChat)
-                .thenApply(it -> it.id)
-                .get();
+            CompletableFuture<TdApi.Chat> chatCompletableFuture = chatId != null
+                ? tgClient.send(new TdApi.GetChat(chatId))
+                : tgClient.send(new TdApi.SearchPublicChat(publicChatName));
+
+            return chatCompletableFuture.get();
         } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+            throw new TgChatsCollectorException("9a1d",
+                "Ошибка при поиске чата по идентификатору: %s. Или имени: %s. Сообщение об ошибке: %s"
+                    .formatted(chatId, publicChatName, e.getMessage()),
+                e);
         }
     }
 
-    public String getChatNameById(Long chatId) {
-        try {
-            return tgClient.send(new TdApi.GetChat(chatId))
-                .thenApply(it -> it.title)
-                .exceptionally(e -> {
-                    log.error("Ошибка при определении имени чата по идентификатору: {}. Сообщение об ошибке: {}", chatId, e.getMessage(), e);
-
-                    throw new RuntimeException(e);
-                })
-                .get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public List<TgMessageDto> collectAllMessagesFromPublicChat(Long chatId, @Nullable Integer limit, @Nullable Integer daysLimit) {
+    /**
+     * Важно, чтобы даты передавались в UTC
+     *
+     * @param chatId идентификатор чата
+     * @param limit предельное количество сообщений
+     * @param dateFrom дата начала периода в UTC
+     * @param dateTo дата окончания периода в UTC
+     * @return список сообщений из чата
+     */
+    public List<TgMessageDto> collectAllMessagesFromPublicChat(Long chatId,
+                                                               @Nullable Integer limit,
+                                                               @Nullable LocalDateTime dateFrom,
+                                                               @Nullable LocalDateTime dateTo) {
         List<TgMessageDto> messageDtos = new ArrayList<>();
         long fromMessageId = 0L;
-        LocalDateTime dateBound = LocalDateTime.now(ZoneOffset.UTC)
-            .minusDays(daysLimit != null
-                ? daysLimit
-                : tgChatLoaderProperty.defaultDaysLimit());
+        if (dateFrom == null) {
+            dateFrom = LocalDateTime.of(
+                LocalDate.now(ZoneOffset.UTC).minusDays(tgChatLoaderProperty.defaultDaysBeforeLimit()),
+                LocalTime.MIN);
+        }
 
         int limitMessagesToLoad = limit == null ? tgChatLoaderProperty.defaultMessagesLimit() : limit;
 
@@ -64,7 +73,9 @@ public class TgClientService {
             TdApi.Messages messages = collectPublicChatMessages(chatId, fromMessageId);
 
             if (messages.totalCount == 0) {
-                break;
+                log.info("Извлечено сообщений: {}", messageDtos.size());
+
+                return messageDtos;
             }
 
             log.info("Загружено сообщений в пачке: {}", messages.messages.length);
@@ -77,7 +88,13 @@ public class TgClientService {
                     LocalDateTime messageDateTime = messageDateTimeUtc
                         .plusHours(3); // Московское время
 
-                    if (messageDateTimeUtc.isBefore(dateBound)) {
+                    if (dateTo != null && messageDateTimeUtc.isAfter(dateTo)) {
+                        continue;
+                    }
+
+                    if (messageDateTimeUtc.isBefore(dateFrom)) {
+                        log.info("Извлечено сообщений: {}", messageDtos.size());
+
                         return messageDtos;
                     }
 
@@ -88,7 +105,7 @@ public class TgClientService {
                 }
 
                 if (messages.messages.length == 0) {
-                    return messageDtos;
+                    break;
                 }
 
                 fromMessageId = messages.messages[messages.messages.length - 1].id;

@@ -1,4 +1,3 @@
-
 server:
   port: 8083
   servlet:
@@ -28,6 +27,19 @@ tg-collector:
       api-id: ${TG_CLIENT_API_ID}
       api-hash: ${TG_CLIENT_API_HASH}
       phone: ${TG_CLIENT_PHONE}
+    bot:
+      token: ${TG_BOT_TOKEN}
+      sk-reading-chat-id: ${SK_READING_CHAT_ID}
+      sk-publishing-chat-id: ${SK_PUBLISHING_CHAT_ID}
   chat-loader:
     default-messages-limit: 2000
-    default-days-limit: 60
+    default-days-before-limit: 60
+  integration:
+    conveyor:
+      host: ${INTEGRATION_CONVEYOR_HOST}
+
+logging:
+  log-exec-time: true
+  web-logging:
+    log-body: true
+    log-feign-requests: true

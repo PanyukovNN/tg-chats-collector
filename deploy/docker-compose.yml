@@ -4,6 +4,8 @@ services:
   tg-chats-collector:
     image: ghcr.io/panyukovnn/tg-chats-collector:${APP_TAG}
     container_name: tg-chats-collector
+    environment:
+      SPRING_PROFILES_ACTIVE: prom
     ports:
       - 8083:8083
     extra_hosts:
