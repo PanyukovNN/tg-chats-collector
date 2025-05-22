@@ -44,6 +44,7 @@ public class TgLightConfig {
             .build(authenticationData);
 
         client.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
+        client.addUpdateHandler(TdApi.UpdateNewMessage.class, this::onUpdateNewMessage);
 
         return client;
     }
@@ -59,5 +60,24 @@ public class TgLightConfig {
         } else if (authorizationState instanceof TdApi.AuthorizationStateLoggingOut) {
             log.info("Logging out...");
         }
+    }
+
+    private void onUpdateNewMessage(TdApi.UpdateNewMessage update) {
+        TdApi.MessageContent messageContent = update.message.content;
+
+        String text;
+        if (messageContent instanceof TdApi.MessageText messageText) {
+            text = messageText.text.text;
+        } else {
+            text = String.format("(%s)", messageContent.getClass().getSimpleName());
+        }
+
+        if (text.length() > 100) {
+            text = text.substring(0, 100) + "...";
+        }
+
+        long chatId = update.message.chatId;
+
+        log.info("Received new message from chat {}: {}", chatId, text);
     }
 }
