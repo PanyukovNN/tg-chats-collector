@@ -16,8 +16,11 @@ public class ProposeToConveyorRequest {
     @Schema(description = "Идентификатор чата")
     private Long chatId;
 
-    @Schema(description = "Имя чата")
-    private String chatName;
+    @Schema(description = "Публичное имя чата")
+    private String publicChatName;
+
+    @Schema(description = "Часть имени приватного чата")
+    private String privateChatNamePart;
 
     @Schema(description = "Имя топика")
     private String topicName;

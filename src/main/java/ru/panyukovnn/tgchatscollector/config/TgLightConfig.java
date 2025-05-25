@@ -44,7 +44,6 @@ public class TgLightConfig {
             .build(authenticationData);
 
         client.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
-        client.addUpdateHandler(TdApi.UpdateNewMessage.class, this::onUpdateNewMessage);
 
         return client;
     }

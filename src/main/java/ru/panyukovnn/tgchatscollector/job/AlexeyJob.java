@@ -40,7 +40,7 @@ public class AlexeyJob {
                 LocalTime.of(LocalTime.now(ZoneOffset.UTC).getHour(), 0, 0)
             );
 
-            List<String> messagesAboutKomiRepublic = tgClientService.collectAllMessagesFromPublicChat(skReadingChatId, null, dateFrom, null).stream()
+            List<String> messagesAboutKomiRepublic = tgClientService.collectAllMessagesFromPublicChat(skReadingChatId, null, null, dateFrom, null).stream()
                 .map(TgMessageDto::getText)
                 .filter(text -> text.contains("Коми"))
                 .toList();

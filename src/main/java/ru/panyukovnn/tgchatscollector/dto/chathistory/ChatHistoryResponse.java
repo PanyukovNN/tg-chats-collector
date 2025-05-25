@@ -1,4 +1,4 @@
-package ru.panyukovnn.tgchatscollector.dto;
+package ru.panyukovnn.tgchatscollector.dto.chathistory;
 
 import lombok.Builder;
 import lombok.Data;
@@ -11,8 +11,10 @@ import java.util.List;
 public class ChatHistoryResponse {
 
     private Long chatId;
-    private String chatName;
+    private String chatPublicName;
+    private String topicName;
     private LocalDateTime firstMessageDateTime;
     private LocalDateTime lastMessageDateTime;
-    private List<String> messages;
+    private Integer totalCount;
+    private List<MessagesBatch> messages;
 }
