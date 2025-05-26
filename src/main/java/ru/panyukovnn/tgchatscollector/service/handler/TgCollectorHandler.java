@@ -66,7 +66,7 @@ public class TgCollectorHandler {
             .firstMessageDateTime(firstMessageDateTime)
             .lastMessageDateTime(lastMessageDateTime)
             .totalCount(totalCount)
-            .messages(messageBatches)
+            .messageBatches(messageBatches)
             .build();
     }
 

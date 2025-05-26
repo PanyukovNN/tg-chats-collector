@@ -16,5 +16,5 @@ public class ChatHistoryResponse {
     private LocalDateTime firstMessageDateTime;
     private LocalDateTime lastMessageDateTime;
     private Integer totalCount;
-    private List<MessagesBatch> messages;
+    private List<MessagesBatch> messageBatches;
 }
