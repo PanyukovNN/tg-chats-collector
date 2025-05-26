@@ -118,11 +118,16 @@ public class TgClientService {
             log.info("Загружено сообщений в пачке: {}", messages.messages.length);
 
             for (TdApi.Message message : messages.messages) {
+                // Если это default топик и сообщение относится к какому-либо из топиков, то его пропускаем
+                if (topic.isGeneral() && message.isTopicMessage) {
+                    continue;
+                }
+
                 TdApi.MessageContent content = message.content;
 
                 String text = extractText(content);
 
-                if (text == null) {
+                if (!StringUtils.hasText(text)) {
                     continue;
                 }
 
@@ -194,11 +199,20 @@ public class TgClientService {
     @SneakyThrows
     public TopicShort findTopicByName(long chatId, String topicName) {
         return tgClient.send(new TdApi.GetForumTopics(chatId, topicName, 0, 0L, 0L, 100))
-            .thenApply(topics -> Arrays.stream(topics.topics)
-                .filter(topic -> topic.info.name.equalsIgnoreCase(topicName))
-                .findFirst()
-                .map(topic -> new TopicShort(topic.info.messageThreadId, topic.info.name, topic.lastMessage.id))
-                .orElseThrow(() -> new TgChatsCollectorException("1689", "не удалось найти топик по имени: " + topicName)))
+            .thenApply(topics -> {
+                TdApi.ForumTopic topic = Arrays.stream(topics.topics)
+                    .filter(ft -> ft.info.name.equalsIgnoreCase(topicName))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        if (topics.topics.length == 0) {
+                            throw new TgChatsCollectorException("1689", "Не удалось найти топик по имени: " + topicName);
+                        } else {
+                            return topics.topics[0];
+                        }
+                    });
+
+                return new TopicShort(topic.info.isGeneral, topic.info.messageThreadId, topic.info.name, topic.lastMessage.id);
+            })
             .get();
     }
 
@@ -247,7 +261,8 @@ public class TgClientService {
 
     private TdApi.Messages collectPublicChatMessages(long chatId, TopicShort topic, long fromMessageId) {
         try {
-            TdApi.Function<TdApi.Messages> chatHistory = topic != null
+            // Если это default (general) топик, то читаем вообще все сообщения из чата, и затем будут фильтроваться только те сообщения, которые не относятся ни к одному из топиков
+            TdApi.Function<TdApi.Messages> chatHistory = topic != null && !topic.isGeneral()
                 ? new TdApi.GetMessageThreadHistory(chatId, topic.lastMessageId(), fromMessageId, 0, 100)
                 : new TdApi.GetChatHistory(chatId, fromMessageId, 0, 100, false);
 

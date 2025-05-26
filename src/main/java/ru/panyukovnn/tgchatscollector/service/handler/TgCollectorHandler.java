@@ -1,5 +1,6 @@
 package ru.panyukovnn.tgchatscollector.service.handler;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,9 +25,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TgCollectorHandler {
 
-    private static final Integer MAX_WORDS_PER_BATCH = 12000;
+    private static final int MAX_BATCH_SIZE_KB = 70;
 
     private final TgClientService tgClientService;
+    private final ObjectMapper objectMapper;
 
     public ChatHistoryResponse handleChatHistory(String publicChatName,
                                                  String privateChatNamePart,
@@ -60,7 +62,7 @@ public class TgCollectorHandler {
         return ChatHistoryResponse.builder()
             .chatId(chat.chatId())
             .chatPublicName(chat.chatPublicName())
-            .topicName(topicName)
+            .topicName(topic != null ? topic.title() : null)
             .firstMessageDateTime(firstMessageDateTime)
             .lastMessageDateTime(lastMessageDateTime)
             .totalCount(totalCount)
@@ -71,33 +73,33 @@ public class TgCollectorHandler {
     private List<MessagesBatch> createMessageBatches(List<TgMessageDto> messageDtos) {
         List<MessagesBatch> batches = new ArrayList<>();
         List<MessageDto> currentBatch = new ArrayList<>();
-        int currentWordCount = 0;
+        int currentBatchSizeBytes = 0;
 
         for (TgMessageDto message : messageDtos) {
-            String text = message.getText();
-            int messageWordCount = text.split("\\s+").length;
-
-            String replyToText = message.getReplyToText();
-            if (replyToText != null) {
-                messageWordCount += replyToText.length();
-            }
-
-            if (currentWordCount + messageWordCount > MAX_WORDS_PER_BATCH && !currentBatch.isEmpty()) {
-                batches.add(MessagesBatch.builder()
-                    .count(currentBatch.size())
-                    .messages(new ArrayList<>(currentBatch))
-                    .build());
-                currentBatch.clear();
-                currentWordCount = 0;
-            }
-
-            currentBatch.add(MessageDto.builder()
+            MessageDto messageDto = MessageDto.builder()
                 .senderId(message.getSenderId())
                 .replyToText(message.getReplyToText())
                 .id(message.getMessageId())
-                .text(text)
-                .build());
-            currentWordCount += messageWordCount;
+                .text(message.getText())
+                .build();
+
+            try {
+                int messageSizeBytes = objectMapper.writeValueAsString(messageDto).getBytes().length;
+
+                if (currentBatchSizeBytes + messageSizeBytes > MAX_BATCH_SIZE_KB * 1024 && !currentBatch.isEmpty()) {
+                    batches.add(MessagesBatch.builder()
+                        .count(currentBatch.size())
+                        .messages(new ArrayList<>(currentBatch))
+                        .build());
+                    currentBatch.clear();
+                    currentBatchSizeBytes = 0;
+                }
+
+                currentBatch.add(messageDto);
+                currentBatchSizeBytes += messageSizeBytes;
+            } catch (Exception e) {
+                log.error("Ошибка при сериализации сообщения в JSON: {}", e.getMessage());
+            }
         }
 
         if (!currentBatch.isEmpty()) {
@@ -109,5 +111,4 @@ public class TgCollectorHandler {
 
         return batches;
     }
-
 }
