@@ -106,6 +106,7 @@ public class TgClientService {
 
         int limitMessagesToLoad = limit == null ? tgChatLoaderProperty.defaultMessagesLimit() : limit;
 
+        Long previousFromMessageId = null;
         while (messageDtos.size() < limitMessagesToLoad) {
             TdApi.Messages messages = collectPublicChatMessages(chatId, topic, fromMessageId);
 
@@ -114,6 +115,11 @@ public class TgClientService {
 
                 return messageDtos;
             }
+
+            if (previousFromMessageId != null && previousFromMessageId == fromMessageId) {
+                return messageDtos;
+            }
+            previousFromMessageId = fromMessageId;
 
             log.info("Загружено сообщений в пачке: {}", messages.messages.length);
 
@@ -135,14 +141,14 @@ public class TgClientService {
                 LocalDateTime messageDateTime = messageDateTimeUtc
                     .plusHours(3); // Московское время
 
-                if (dateTo != null && messageDateTimeUtc.isAfter(dateTo)) {
-                    continue;
-                }
-
                 if (messageDateTimeUtc.isBefore(dateFrom)) {
                     log.info("Извлечено сообщений: {}", messageDtos.size());
 
                     return messageDtos;
+                }
+
+                if (dateTo != null && messageDateTimeUtc.isAfter(dateTo)) {
+                    continue;
                 }
 
                 messageDtos.add(TgMessageDto.builder()
