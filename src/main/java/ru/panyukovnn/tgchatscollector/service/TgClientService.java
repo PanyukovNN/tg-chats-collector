@@ -18,10 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
@@ -106,8 +103,9 @@ public class TgClientService {
 
         int limitMessagesToLoad = limit == null ? tgChatLoaderProperty.defaultMessagesLimit() : limit;
 
-        Long previousFromMessageId = null;
-        while (messageDtos.size() < limitMessagesToLoad) {
+        Long previousFirstMessageId = null;
+        Long previousLastMessageId = null;
+        while (messageDtos.size() < limitMessagesToLoad || Thread.interrupted()) {
             TdApi.Messages messages = collectPublicChatMessages(chatId, topic, fromMessageId);
 
             if (messages.totalCount == 0) {
@@ -116,16 +114,24 @@ public class TgClientService {
                 return messageDtos;
             }
 
-            if (previousFromMessageId != null && previousFromMessageId == fromMessageId) {
+            // Проверяем что выгрузилась новая группа сообщений
+            long firstMessageId = messages.messages[0].id;
+            long lastMessageId = messages.messages[messages.messages.length - 1].id;
+            if (Objects.equals(firstMessageId, previousFirstMessageId) && Objects.equals(lastMessageId, previousLastMessageId)) {
+                log.info("Извлечено сообщений: {}", messageDtos.size());
+
                 return messageDtos;
             }
-            previousFromMessageId = fromMessageId;
+            previousFirstMessageId = firstMessageId;
+            previousLastMessageId = lastMessageId;
 
             log.info("Загружено сообщений в пачке: {}", messages.messages.length);
 
             for (TdApi.Message message : messages.messages) {
                 // Если это default топик и сообщение относится к какому-либо из топиков, то его пропускаем
-                if (topic.isGeneral() && message.isTopicMessage) {
+                if (topic != null && topic.isGeneral() && message.isTopicMessage) {
+                    fromMessageId = messages.messages[messages.messages.length - 1].id;
+
                     continue;
                 }
 

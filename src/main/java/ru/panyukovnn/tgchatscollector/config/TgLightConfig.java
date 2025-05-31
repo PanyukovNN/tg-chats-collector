@@ -44,6 +44,7 @@ public class TgLightConfig {
             .build(authenticationData);
 
         client.addUpdateHandler(TdApi.UpdateAuthorizationState.class, this::onUpdateAuthorizationState);
+//        client.addUpdateHandler(TdApi.UpdateNewMessage.class, this::onUpdateNewMessage);
 
         return client;
     }
@@ -76,7 +77,8 @@ public class TgLightConfig {
         }
 
         long chatId = update.message.chatId;
+        long topicId = update.message.messageThreadId;
 
-        log.info("Received new message from chat {}: {}", chatId, text);
+        log.info("Received new message from chat {}/{}: {}", chatId, topicId, text);
     }
 }

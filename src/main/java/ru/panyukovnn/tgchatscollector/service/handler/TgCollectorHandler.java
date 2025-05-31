@@ -25,7 +25,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TgCollectorHandler {
 
-    private static final int MAX_BATCH_SIZE_KB = 70;
+    private static final int MAX_BATCH_SIZE_KB = 190;
 
     private final TgClientService tgClientService;
     private final ObjectMapper objectMapper;
@@ -61,7 +61,9 @@ public class TgCollectorHandler {
 
         return ChatHistoryResponse.builder()
             .chatId(chat.chatId())
+            .chatTitle(chat.title())
             .chatPublicName(chat.chatPublicName())
+            .topicId(topic != null ? topic.topicId() : null)
             .topicName(topic != null ? topic.title() : null)
             .firstMessageDateTime(firstMessageDateTime)
             .lastMessageDateTime(lastMessageDateTime)
