@@ -21,11 +21,11 @@ public class TgChatLoaderController {
     @GetMapping("/getChatHistory")
     public ChatHistoryResponse getChatHistory(@RequestParam(required = false) String publicChatName,
                                               @RequestParam(required = false) String privateChatNamePart,
-                                              @RequestParam(required = false) String topicName,
+                                              @RequestParam(required = false) String topicNamePart,
                                               @RequestParam(required = false) Integer limit,
                                               @Schema(description = "Дата до которой будут извлекаться сообщения, в UTC")
                                               @RequestParam(required = false) LocalDateTime dateFrom,
                                               @RequestParam(required = false) LocalDateTime dateTo) {
-        return tgCollectorHandler.handleChatHistory(publicChatName, privateChatNamePart, topicName, limit, dateFrom, dateTo);
+        return tgCollectorHandler.handleChatHistory(publicChatName, privateChatNamePart, topicNamePart, limit, dateFrom, dateTo);
     }
 }

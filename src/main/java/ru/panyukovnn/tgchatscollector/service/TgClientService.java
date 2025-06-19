@@ -209,15 +209,15 @@ public class TgClientService {
     }
 
     @SneakyThrows
-    public TopicShort findTopicByName(long chatId, String topicName) {
-        return tgClient.send(new TdApi.GetForumTopics(chatId, topicName, 0, 0L, 0L, 100))
+    public TopicShort findTopicByName(long chatId, String topicNamePart) {
+        return tgClient.send(new TdApi.GetForumTopics(chatId, topicNamePart, 0, 0L, 0L, 100))
             .thenApply(topics -> {
                 TdApi.ForumTopic topic = Arrays.stream(topics.topics)
-                    .filter(ft -> ft.info.name.equalsIgnoreCase(topicName))
+                    .filter(ft -> ft.info.name.equalsIgnoreCase(topicNamePart))
                     .findFirst()
                     .orElseGet(() -> {
                         if (topics.topics.length == 0) {
-                            throw new TgChatsCollectorException("1689", "Не удалось найти топик по имени: " + topicName);
+                            throw new TgChatsCollectorException("1689", "Не удалось найти топик по имени: " + topicNamePart);
                         } else {
                             return topics.topics[0];
                         }
